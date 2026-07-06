@@ -182,14 +182,30 @@ export default function Home() {
     }
   };
 
+  /**
+   * handleVote - Handles upvoting and downvoting on individual question cards in the feed.
+   * 
+   * @param e - React Mouse Event to capture user click details.
+   * @param questionId - The target question ID in MongoDB.
+   * @param voteType - Either 'upvote' or 'downvote'.
+   */
   const handleVote = async (e: React.MouseEvent, questionId: string, voteType: 'upvote' | 'downvote') => {
-    e.stopPropagation(); // Stop card redirection click!
+    // 1. PREVENT EVENT BUBBLING (Propagation):
+    // The entire question card has an onClick handler redirecting to '/questions/[id]'.
+    // Calling e.stopPropagation() ensures that clicking the vote arrows registers the vote
+    // without triggering the card's click event and redirecting the user!
+    e.stopPropagation(); 
+
+    // 2. SECURITY CHECK:
+    // Ensure only logged-in users can participate in voting.
     if (!user) {
       alert("Please log in to vote!");
       return;
     }
 
     try {
+      // 3. BACKEND API CALL:
+      // Send a POST request to '/api/votes' carrying the target ID, vote action, and user ID.
       const res = await fetch("/api/votes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -202,8 +218,19 @@ export default function Home() {
       });
 
       const data = await res.json();
+      
+      // 4. IN-PLACE REACT STATE UPDATE:
+      // If the database successfully updates the arrays, we update the state in-place.
+      // We map through the existing questions array and replace the upvote/downvote lists
+      // for the matching question. This avoids refreshing the page or refetching the whole list.
       if (res.ok && data.success) {
-        setQuestions(prev => prev.map(q => q._id === questionId ? { ...q, upvotes: data.upvotes, downvotes: data.downvotes } : q));
+        setQuestions(prev => 
+          prev.map(q => 
+            q._id === questionId 
+              ? { ...q, upvotes: data.upvotes, downvotes: data.downvotes } 
+              : q
+          )
+        );
       } else {
         console.error(data.message || "Failed to register vote");
       }

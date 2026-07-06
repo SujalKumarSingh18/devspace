@@ -11,21 +11,22 @@ We will build DevSpace using a **Next.js App Router** architecture. Next.js give
 ```mermaid
 graph TD
     User([Browser Client]) -->|HTTP Requests| NextServer[Next.js App Router Server]
-    
+
     subgraph NextServer [Next.js Server Side]
         Middleware[Auth Middleware]
         PageServer[Server Components / SSR Pages]
         APIRoutes[API Routes / Server Actions]
         Cache[Weather Cache Memory]
     end
-    
+
     NextServer -->|Mongoose ODM| MongoDb[(MongoDB Database)]
     NextServer -->|Fetch HTTPS| WeatherAPI[OpenWeatherMap API]
 ```
 
 ### Server vs. Client Boundary Design
-* **Server Components (Default)**: Used for landing pages, question lists, question detail pages, and profiles. These compile on the server and fetch data directly from MongoDB, eliminating client-side loading spinners and improving SEO.
-* **Client Components (`"use client"`)**: Used for interactive forms (asking questions, writing markdown answers, taking quizzes, toggling themes). These handle local state, animations, and immediate user actions.
+
+- **Server Components (Default)**: Used for landing pages, question lists, question detail pages, and profiles. These compile on the server and fetch data directly from MongoDB, eliminating client-side loading spinners and improving SEO.
+- **Client Components (`"use client"`)**: Used for interactive forms (asking questions, writing markdown answers, taking quizzes, toggling themes). These handle local state, animations, and immediate user actions.
 
 ---
 
@@ -45,7 +46,9 @@ erDiagram
 ### Schema Definitions
 
 #### A. User Schema (`User`)
+
 Represents the registered developers on the platform, including their reputation and gamification stats.
+
 ```typescript
 {
   username: { type: String, required: true, unique: true, index: true },
@@ -60,6 +63,7 @@ Represents the registered developers on the platform, including their reputation
 ```
 
 #### B. Question Schema (`Question`)
+
 ```typescript
 {
   title: { type: String, required: true, index: true },
@@ -74,6 +78,7 @@ Represents the registered developers on the platform, including their reputation
 ```
 
 #### C. Answer Schema (`Answer`)
+
 ```typescript
 {
   content: { type: String, required: true }, // Markdown string
@@ -87,6 +92,7 @@ Represents the registered developers on the platform, including their reputation
 ```
 
 #### D. Quiz Schema (`Quiz`)
+
 ```typescript
 {
   title: { type: String, required: true },
@@ -103,7 +109,9 @@ Represents the registered developers on the platform, including their reputation
 ```
 
 #### E. QuizAttempt Schema (`QuizAttempt`)
+
 Logs user performance on assessments to update profile statistics and reputation.
+
 ```typescript
 {
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -118,23 +126,21 @@ Logs user performance on assessments to update profile statistics and reputation
 ## 3. Key Data Flows
 
 ### A. Reputations & Badges Pipeline
+
 When an event happens, how does the database update reputation points?
-* **Upvote on Answer**: Target answer's author receives **+10 Reputation**.
-* **Upvote on Question**: Target question's author receives **+5 Reputation**.
-* **Accepted Answer**: Author receives **+20 Reputation**.
-* **Quiz Success (score >= 80%)**: User receives **+50 Reputation** and potential badge validation (e.g., if JS Quiz is completed, add `'js-wizard'` badge).
+
+- **Upvote on Answer**: Target answer's author receives **+10 Reputation**.
+- **Upvote on Question**: Target question's author receives **+5 Reputation**.
+- **Accepted Answer**: Author receives **+20 Reputation**.
+- **Quiz Success (score >= 80%)**: User receives **+50 Reputation** and potential badge validation (e.g., if JS Quiz is completed, add `'js-wizard'` badge).
 
 ### B. Third-Party Weather API with Server caching
+
 To fetch the weather without hitting rate limits or slowing down the dashboard:
+
 1. User loads Dashboard.
 2. Next.js Server check if we have weather data cached in memory (or redis/mongodb) for the User's `location` that is less than 30 minutes old.
 3. **If cached**: Return cached weather.
 4. **If expired/missing**: Call OpenWeatherMap API, store in cache, and return response.
 
 ---
-
-## User Review Required
-
-> [!IMPORTANT]
-> 1. **Do these schema structures look clear?** (Specifically, using an array of `User` IDs for `upvotes`/`downvotes` allows us to easily track if a user has already voted to prevent duplicates).
-> 2. **Authentication Flow**: Do you want to implement JWT authentication manually using Next.js routes and cookies, or do you want to use Next.js default credentials handling? (Writing it manually teaches you cookie-session handling, which is excellent for interview prep).
