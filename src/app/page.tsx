@@ -21,6 +21,8 @@ interface Question {
     _id: string;
     username: string;
   };
+  upvotes: string[];
+  downvotes: string[];
   createdAt: string;
 }
 
@@ -82,7 +84,7 @@ export default function Home() {
         // Fetch data
         // Hint: const [qRes, quizRes, userRes] = await Promise.all([ ... ]);
         const [qRes, quizRes, userRes] = await Promise.all([
-          fetch("/api/questions"),
+          fetch("/api/questions", { cache: "no-store" }),
           fetch("/api/quizzes"),
           fetch("/api/auth/me"),
         ]);
@@ -157,7 +159,7 @@ export default function Home() {
         setContent("");
         setTagInput("");
         // Refresh the questions list
-        const updatedRes = await fetch("/api/questions");
+        const updatedRes = await fetch("/api/questions", { cache: "no-store" });
         const updatedData = await updatedRes.json();
         if (updatedData.success) setQuestions(updatedData.questions || []);
       }else{
@@ -167,6 +169,46 @@ export default function Home() {
     } catch (err: any) {
       // Set submit error message
       setSubmitError("Failed to post question");
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setUser(null);
+      router.push("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
+
+  const handleVote = async (e: React.MouseEvent, questionId: string, voteType: 'upvote' | 'downvote') => {
+    e.stopPropagation(); // Stop card redirection click!
+    if (!user) {
+      alert("Please log in to vote!");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/votes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetType: 'question',
+          targetId: questionId,
+          userId: user._id,
+          voteType
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setQuestions(prev => prev.map(q => q._id === questionId ? { ...q, upvotes: data.upvotes, downvotes: data.downvotes } : q));
+      } else {
+        console.error(data.message || "Failed to register vote");
+      }
+    } catch (err) {
+      console.error("Vote request failed:", err);
     }
   };
 
@@ -184,13 +226,21 @@ export default function Home() {
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => setShowAskForm(!showAskForm)}
               className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-4 py-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-md shadow-indigo-600/10 hover:shadow-indigo-500/25 cursor-pointer"
             >
               {showAskForm ? "Close Form" : "Ask a Question"}
             </button>
+            {user && (
+              <button 
+                onClick={handleLogout}
+                className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-850 text-zinc-300 hover:text-white font-semibold text-sm px-4 py-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+              >
+                Log Out
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -276,34 +326,61 @@ export default function Home() {
                   <div 
                     key={q._id}
                     onClick={() => router.push(`/questions/${q._id}`)}
-                    className="p-5 bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl transition-all duration-200 group relative hover:shadow-lg hover:shadow-indigo-500/[0.02] cursor-pointer"
+                    className="flex gap-4 p-5 bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl transition-all duration-200 group relative hover:shadow-lg hover:shadow-indigo-500/[0.02] cursor-pointer"
                   >
-                    <div className="flex items-center gap-2 mb-2.5">
-                      <div className="h-6 w-6 rounded-full bg-indigo-900/50 border border-indigo-500/20 text-indigo-400 text-xs font-semibold flex items-center justify-center">
-                        {q.author?.username?.[0]?.toUpperCase() || "?"}
-                      </div>
-                      <span className="text-xs text-zinc-400 font-medium">{q.author?.username || "unknown"}</span>
-                      <span className="text-zinc-600 text-xs">•</span>
-                      <span className="text-xs text-zinc-500">{new Date(q.createdAt).toLocaleDateString()}</span>
+                    {/* LEFT: VOTING COLUMN */}
+                    <div className="flex flex-col items-center gap-2 pt-1.5 min-w-[3rem] border-r border-zinc-800/40 pr-3">
+                      <button 
+                        onClick={(e) => handleVote(e, q._id, 'upvote')}
+                        className={`p-1.5 px-2.5 rounded-lg text-xs font-bold transition duration-200 cursor-pointer flex items-center gap-1 ${
+                          q.upvotes?.includes(user?._id || '')
+                            ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/20"
+                            : "text-zinc-500 hover:text-zinc-300"
+                        }`}
+                      >
+                        ▲ {(q.upvotes?.length || 0)}
+                      </button>
+                      <button 
+                        onClick={(e) => handleVote(e, q._id, 'downvote')}
+                        className={`p-1.5 px-2.5 rounded-lg text-xs font-bold transition duration-200 cursor-pointer flex items-center gap-1 ${
+                          q.downvotes?.includes(user?._id || '')
+                            ? "bg-red-600/20 text-red-400 border border-red-500/20"
+                            : "text-zinc-500 hover:text-zinc-300"
+                        }`}
+                      >
+                        ▼ {(q.downvotes?.length || 0)}
+                      </button>
                     </div>
 
-                    <h3 className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors duration-200 mb-2">
-                      {q.title}
-                    </h3>
-                    
-                    <p className="text-sm text-zinc-400 line-clamp-2 mb-4 leading-relaxed">
-                      {q.content}
-                    </p>
+                    {/* RIGHT: QUESTION CONTENT */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2.5">
+                        <div className="h-6 w-6 rounded-full bg-indigo-900/50 border border-indigo-500/20 text-indigo-400 text-xs font-semibold flex items-center justify-center">
+                          {q.author?.username?.[0]?.toUpperCase() || "?"}
+                        </div>
+                        <span className="text-xs text-zinc-400 font-medium">{q.author?.username || "unknown"}</span>
+                        <span className="text-zinc-600 text-xs">•</span>
+                        <span className="text-xs text-zinc-500">{new Date(q.createdAt).toLocaleDateString()}</span>
+                      </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      {q.tags.map((tag) => (
-                        <span 
-                          key={tag}
-                          className="text-xs px-2.5 py-1 bg-zinc-950 border border-zinc-800 text-zinc-400 rounded-lg font-medium"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
+                      <h3 className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors duration-200 mb-2">
+                        {q.title}
+                      </h3>
+                      
+                      <p className="text-sm text-zinc-400 line-clamp-2 mb-4 leading-relaxed">
+                        {q.content}
+                      </p>
+
+                      <div className="flex flex-wrap gap-2">
+                        {q.tags.map((tag) => (
+                          <span 
+                            key={tag}
+                            className="text-xs px-2.5 py-1 bg-zinc-950 border border-zinc-800 text-zinc-400 rounded-lg font-medium"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -316,7 +393,10 @@ export default function Home() {
             
             {/* USER PROFILE CARD */}
             {user && (
-              <div className="p-6 bg-gradient-to-b from-zinc-900 to-zinc-950 border border-zinc-800 rounded-2xl relative overflow-hidden shadow-xl shadow-zinc-950/50">
+              <div 
+                onClick={() => router.push("/profile")}
+                className="p-6 bg-gradient-to-b from-zinc-900 to-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-2xl relative overflow-hidden shadow-xl shadow-zinc-950/50 cursor-pointer transition-all duration-250"
+              >
                 <div className="absolute top-0 right-0 h-24 w-24 bg-indigo-500/5 rounded-full blur-2xl" />
                 
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-4">Your Profile</h3>

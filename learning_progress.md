@@ -200,11 +200,18 @@ Here is how all the files in your project connect to each other in a 5-tier arch
 - **[page.tsx](file:///c:/Users/sujal/Desktop/PROJECTS/devspace/src/app/profile/page.tsx):** Completed. User profile page showcasing dynamic contributor rank calculations, progress bars, reputation stats, and unlocked/locked badges dashboard.
 - **[page.tsx](file:///c:/Users/sujal/Desktop/PROJECTS/devspace/src/app/register/page.tsx):** Completed. Premium dark mode registration page layout and integration.
 - **[page.tsx](file:///c:/Users/sujal/Desktop/PROJECTS/devspace/src/app/login/page.tsx):** Completed. Premium dark mode login page layout and integration.
+- **[route.ts](file:///c:/Users/sujal/Desktop/PROJECTS/devspace/src/app/api/auth/logout/route.ts):** Completed. Clear token cookie endpoint to log out users.
+- **Session API Refactor:** Completed. Refactored `/api/auth/login` to sign JWT tokens and set HTTP-only cookies, and `/api/auth/me` to read and verify cookies for multi-user session support. Added navbar "Log Out" button.
+- **[route.ts](file:///c:/Users/sujal/Desktop/PROJECTS/devspace/src/app/api/votes/route.ts):** Completed. Unified voting API to upvote and downvote questions and answers.
+- **[route.ts](file:///c:/Users/sujal/Desktop/PROJECTS/devspace/src/app/api/answers/[id]/route.ts):** Completed. Admin-only endpoint to delete answers.
+- **Admin deletion controls:** Completed. Added dynamic, admin-restricted "Delete Question" and "Delete Reply" buttons to the Question details page UI.
+- **Feed sorting:** Completed. Modified GET questions endpoint to sort questions newest first using `.sort({ createdAt: -1 })`.
+- **Reputation increment additions:** Completed. Incremented user reputation by `+10 XP` for publishing questions and `+20 XP` for publishing answers.
 
 ---
 
 ## 🛠️ Upcoming Steps
+1. Connect GitHub repository to Vercel and deploy DevSpace live.
+2. Integrate Google OAuth login using NextAuth/Auth.js.
+3. Add a visual admin dashboard for creating and managing quizzes.
 
-1. Test the registration and login routes in the browser.
-2. Build JWT cookie session management (to replace mock `/api/auth/me` with actual cookies).
-3. Connect GitHub repository to Vercel and deploy DevSpace live!

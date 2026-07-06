@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import jwt from 'jsonwebtoken';
 import dbConnect from '@/lib/dbConnect';
 import Question from '@/models/Question';
+import User from '@/models/User';
+import Answer from '@/models/Answer';
 
 
 // ======================================================================
@@ -27,6 +31,59 @@ export async function GET(
 
     // D. Return success response with the fetched question document
     return NextResponse.json({ success: true, question}, {status: 200});
+
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// ======================================================================
+// DELETE: Remove a Question and all its answers (Admin Only)
+// ======================================================================
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await dbConnect();
+    const { id } = await params;
+
+    // 1. Authenticate user from session cookie
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
+    if (!token) {
+      return NextResponse.json({ message: "Access Denied: Log in required!" }, { status: 401 });
+    }
+
+    // 2. Verify token
+    const secret = process.env.JWT_SECRET || 'devspace-secret-key-123!';
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, secret);
+    } catch (err) {
+      return NextResponse.json({ message: "Access Denied: Invalid session!" }, { status: 401 });
+    }
+
+    // 3. Verify Admin privileges
+    const activeUser = await User.findById(decoded.userId);
+    if (!activeUser || activeUser.role !== 'admin') {
+      return NextResponse.json({ message: "Access Denied: Admin privileges required!" }, { status: 403 });
+    }
+
+    // ======================================================================
+    // TODO: Write Mongoose query to delete the question by its ID
+    // AND optionally delete all related answers for this question
+    // ======================================================================
+    // Hint 1: Use Question.findByIdAndDelete(id)
+    // Hint 2: Use Answer.deleteMany({ question: id }) to clean up replies!
+    const questionDeleted = await Question.findByIdAndDelete(id);
+    const answersDeleted = await Answer.deleteMany({ question: id });
+    
+
+    return NextResponse.json({ 
+      success: true, 
+      message: "Question and all its answers deleted successfully!" 
+    });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

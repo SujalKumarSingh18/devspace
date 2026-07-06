@@ -13,6 +13,8 @@ interface Question {
     _id: string;
     username: string;
   };
+  upvotes: string[];
+  downvotes: string[];
   createdAt: string;
 }
 
@@ -23,12 +25,15 @@ interface Answer {
     _id: string;
     username: string;
   };
+  upvotes: string[];
+  downvotes: string[];
   createdAt: string;
 }
 
 interface UserProfile {
   _id: string;
   username: string;
+  role?: 'user' | 'admin';
 }
 
 export default function QuestionDetailPage() {
@@ -151,6 +156,99 @@ export default function QuestionDetailPage() {
     }
   };
 
+  const handleVote = async (targetType: 'question' | 'answer', targetId: string, voteType: 'upvote' | 'downvote') => {
+    if (!user) {
+      alert("Please log in to vote on posts!");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/votes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetType,
+          targetId,
+          userId: user._id,
+          voteType
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        // ======================================================================
+        // TODO: Update React states locally using state setters (setQuestion / setAnswers)
+        // ======================================================================
+        // Hint for question:
+        //    setQuestion(prev => prev ? { ...prev, upvotes: data.upvotes, downvotes: data.downvotes } : null);
+        // Hint for answer:
+        //    setAnswers(prev => prev.map(ans => ans._id === targetId ? { ...ans, upvotes: data.upvotes, downvotes: data.downvotes } : ans));
+        if (targetType === 'question'){
+          setQuestion(prev => prev ? { ...prev, upvotes: data.upvotes, downvotes: data.downvotes } : null);
+        } else {
+          setAnswers(prev => prev.map(ans => ans._id === targetId ? { ...ans, upvotes: data.upvotes, downvotes: data.downvotes } : ans));
+        }
+
+      } else {
+        console.error(data.message || "Failed to submit vote");
+      }
+    } catch (err) {
+      console.error("Voting error:", err);
+    }
+  };
+
+  const handleDeleteQuestion = async () => {
+    if (!confirm("Are you sure you want to delete this question? This will also delete all of its answers!")) return;
+    try {
+      // ======================================================================
+      // TODO: Call DELETE /api/questions/[questionId] and route home on success
+      // ======================================================================
+      // 1. Fetch `/api/questions/${questionId}` with method "DELETE"
+      // 2. If response is ok: alert success and redirect home (router.push("/"))
+      // 3. Else: alert error message
+      const response = await fetch(`/api/questions/${questionId}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      
+      if (response.ok){
+        alert(data.message || "Question deleted successfully!");
+        router.push("/");
+      }
+      else{
+        alert(data.message || data.error || "Failed to delete question");
+      }
+      
+    } catch (err) {
+      console.error("Failed to delete question:", err);
+    }
+  };
+
+  const handleDeleteAnswer = async (answerId: string) => {
+    if (!confirm("Are you sure you want to delete this answer?")) return;
+    try {
+      // ======================================================================
+      // TODO: Call DELETE /api/answers/[answerId] and filter answers list state
+      // ======================================================================
+      // 1. Fetch `/api/answers/${answerId}` with method "DELETE"
+      // 2. If response is ok: setAnswers(prev => prev.filter(ans => ans._id !== answerId))
+      // 3. Else: alert error message
+      const response = await fetch(`/api/answers/${answerId}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (response.ok){
+        setAnswers(prev => prev.filter(ans => ans._id !== answerId));
+      }
+      else{
+        alert(data.message || data.error || "Failed to delete answer");
+      }
+      
+    } catch (err) {
+      console.error("Failed to delete answer:", err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center">
@@ -218,6 +316,41 @@ export default function QuestionDetailPage() {
               </span>
             ))}
           </div>
+
+          {/* Voting Row */}
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-zinc-800/50">
+            <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded-xl p-1 gap-1">
+              <button 
+                onClick={() => handleVote('question', question._id, 'upvote')}
+                className={`p-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  question.upvotes?.includes(user?._id || '')
+                    ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/20"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                ▲ Upvote ({question.upvotes?.length || 0})
+              </button>
+              <button 
+                onClick={() => handleVote('question', question._id, 'downvote')}
+                className={`p-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  question.downvotes?.includes(user?._id || '')
+                    ? "bg-red-600/20 text-red-400 border border-red-500/20"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                ▼ Downvote ({question.downvotes?.length || 0})
+              </button>
+            </div>
+
+            {user && user.role === 'admin' && (
+              <button 
+                onClick={handleDeleteQuestion}
+                className="bg-red-950/20 hover:bg-red-900/20 border border-red-900/30 hover:border-red-800/50 text-red-400 hover:text-red-300 font-semibold text-xs px-4 py-2 rounded-xl transition duration-200 cursor-pointer shadow-md"
+              >
+                Delete Question
+              </button>
+            )}
+          </div>
         </div>
 
         {/* ANSWERS LIST SECTION */}
@@ -248,6 +381,41 @@ export default function QuestionDetailPage() {
                   <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
                     {ans.content}
                   </p>
+
+                  {/* Voting Row */}
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-800/30">
+                    <div className="flex items-center bg-zinc-950 border border-zinc-850 rounded-xl p-0.5 gap-1">
+                      <button 
+                        onClick={() => handleVote('answer', ans._id, 'upvote')}
+                        className={`p-1.5 px-2.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                          ans.upvotes?.includes(user?._id || '')
+                            ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/20"
+                            : "text-zinc-500 hover:text-zinc-300"
+                        }`}
+                      >
+                        ▲ ({ans.upvotes?.length || 0})
+                      </button>
+                      <button 
+                        onClick={() => handleVote('answer', ans._id, 'downvote')}
+                        className={`p-1.5 px-2.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                          ans.downvotes?.includes(user?._id || '')
+                            ? "bg-red-600/20 text-red-400 border border-red-500/20"
+                            : "text-zinc-500 hover:text-zinc-300"
+                        }`}
+                      >
+                        ▼ ({ans.downvotes?.length || 0})
+                      </button>
+                    </div>
+
+                    {user && user.role === 'admin' && (
+                      <button 
+                        onClick={() => handleDeleteAnswer(ans._id)}
+                        className="text-[10px] text-red-400 hover:text-red-300 font-semibold px-2.5 py-1 bg-red-950/20 hover:bg-red-900/10 border border-red-900/30 rounded-lg transition duration-200 cursor-pointer"
+                      >
+                        Delete Reply
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
