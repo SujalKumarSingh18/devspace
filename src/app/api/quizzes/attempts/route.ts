@@ -29,9 +29,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "User or Quiz does not exist" }, { status: 404 });
     }
 
-    // D. Create Attempt: Save the attempt document to MongoDB
-    const attempt = await QuizAttempt.create({ user, quiz, score });
-
     // E. Gamification: If score is 80% or higher, reward the user!
     let reputationUpdated = false;
     if (score >= 80) {
@@ -56,6 +53,9 @@ export async function POST(req: Request) {
         reputationUpdated = true;
       }
     }
+
+    // D. Create Attempt: Save the attempt document to MongoDB
+    const attempt = await QuizAttempt.create({ user, quiz, score });
 
     return NextResponse.json({ 
       message: "Quiz Attempt logged successfully!", 
