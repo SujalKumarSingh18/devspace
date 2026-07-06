@@ -23,6 +23,7 @@ interface UserProfile {
   _id: string;
   username: string;
   reputation: number;
+  badges?: string[];
 }
 
 export default function QuizPage() {
@@ -126,6 +127,20 @@ export default function QuizPage() {
         
         if (response.ok) {
           setEarnedReputation(data.reputationUpdated);
+          if (data.reputationUpdated) {
+            setUser(prev => {
+              if (!prev) return null;
+              const newBadges = prev.badges ? [...prev.badges] : [];
+              if (!newBadges.includes('quiz-master')) {
+                newBadges.push('quiz-master');
+              }
+              return {
+                ...prev,
+                reputation: prev.reputation + 50,
+                badges: newBadges
+              };
+            });
+          }
         } else {
           setSubmitError(data.message || "Failed to submit quiz attempt.");
         }

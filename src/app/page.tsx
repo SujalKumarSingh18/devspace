@@ -10,6 +10,7 @@ interface UserProfile {
   email: string;
   reputation: number;
   badges: string[];
+  role?: 'user' | 'admin';
 }
 
 interface Question {
@@ -38,8 +39,6 @@ export default function Home() {
   const router = useRouter();
 
   // ======================================================================
-  // 1. TODO: Define React States (using useState)
-  // ======================================================================
   // Define states for:
   // - questions (type: Question[], initial: [])
   // - quizzes (type: Quiz[], initial: [])
@@ -47,6 +46,7 @@ export default function Home() {
   // - loading (type: boolean, initial: true)
   // - showAskForm (type: boolean, initial: false)
   // Hint: const [questions, setQuestions] = useState<Question[]>([]);
+  // ======================================================================
   const [questions, setQuestions] = useState<Question[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -55,14 +55,13 @@ export default function Home() {
   
 
   // ======================================================================
-  // 2. TODO: Define Question Form States (using useState)
-  // ======================================================================
   // Define states for:
   // - title (string, initial: "")
   // - content (string, initial: "")
   // - tagInput (string, initial: "")
   // - submitError (string, initial: "")
   // - submitSuccess (string, initial: "")
+  // ======================================================================
   const [title, setTitle] = useState<string>("");
   const [content, setContent] = useState<string>("");
   const [tagInput, setTagInput] = useState<string>("");
@@ -71,7 +70,7 @@ export default function Home() {
   
 
   // ======================================================================
-  // 3. TODO: Fetch Dashboard Data on Page Mount (useEffect)
+  // Fetch Dashboard Data on Page Mount (useEffect)
   // ======================================================================
   // Write a useEffect hook that runs only ONCE when the component mounts.
   // Inside, fetch "/api/questions", "/api/quizzes", and "/api/auth/me" 
@@ -110,7 +109,7 @@ export default function Home() {
   }, []); // Run on mount
 
   // ======================================================================
-  // 4. TODO: Handle Question Submission (POST request)
+  // Handle Question Submission (POST request)
   // ======================================================================
   const handleAskQuestion = async (e: React.FormEvent) => {
     // Prevent the default browser page reload behavior
@@ -154,10 +153,12 @@ export default function Home() {
       // - Refresh the questions list by fetching "/api/questions" again
       if (res.ok){
         setShowAskForm(false);
-        setSubmitSuccess("Question asked successfully!")
+        setSubmitSuccess("Question/Announcement asked successfully!")
         setTitle("");
         setContent("");
         setTagInput("");
+        // Dynamically award 10 XP to local user state so it updates in the sidebar instantly without reload
+        setUser(prev => prev ? { ...prev, reputation: prev.reputation + 10 } : null);
         // Refresh the questions list
         const updatedRes = await fetch("/api/questions", { cache: "no-store" });
         const updatedData = await updatedRes.json();
@@ -260,7 +261,7 @@ export default function Home() {
                   onClick={() => setShowAskForm(!showAskForm)}
                   className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-4 py-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-md shadow-indigo-600/10 hover:shadow-indigo-500/25 cursor-pointer"
                 >
-                  {showAskForm ? "Close Form" : "Ask a Question"}
+                  {showAskForm ? "Close Form" : (user && user.role === 'admin' ? "Ask a Question/Announcement" : "Ask a Question")}
                 </button>
                 <button 
                   onClick={handleLogout}
@@ -295,7 +296,7 @@ export default function Home() {
         {/* ASK QUESTION PANEL */}
         {showAskForm && (
           <div className="mb-8 p-6 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-xl animate-in fade-in slide-in-from-top-4 duration-300">
-            <h2 className="text-xl font-bold mb-4 text-white">Ask a Public Question</h2>
+            <h2 className="text-xl font-bold mb-4 text-white">Ask a Public {user && user.role === 'admin' ? "Question/Announcement" : "Question"}</h2>
             <form onSubmit={handleAskQuestion} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">Title</label>
@@ -303,7 +304,7 @@ export default function Home() {
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. How to use Promise.all in TypeScript?"
+                  placeholder={user && user.role === 'admin' ? "e.g. Important Announcement: System Update" : "e.g. How to use Promise.all in TypeScript?"}
                   className="w-full bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 text-white"
                 />
               </div>
@@ -314,7 +315,7 @@ export default function Home() {
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   rows={5}
-                  placeholder="Describe your question in detail..."
+                  placeholder={user && user.role === 'admin' ? "Describe your question/announcement in detail..." : "Describe your question in detail..."}
                   className="w-full bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 text-white resize-none"
                 />
               </div>
@@ -337,7 +338,7 @@ export default function Home() {
                 type="submit"
                 className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-600/10 cursor-pointer"
               >
-                Publish Question
+                Publish {user && user.role === 'admin' ? "Question/Announcement" : "Question"}
               </button>
             </form>
           </div>
@@ -348,7 +349,7 @@ export default function Home() {
           {/* LEFT COLUMN: QUESTIONS LIST */}
           <div className="md:col-span-2 space-y-6">
             <h2 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-              Explore Questions
+              Explore {user && user.role === 'admin' ? "Questions/Announcements" : "Questions"}
               <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full font-mono">
                 {questions.length}
               </span>
@@ -362,7 +363,7 @@ export default function Home() {
               </div>
             ) : questions.length === 0 ? (
               <div className="p-8 text-center bg-zinc-900/30 border border-zinc-800/50 rounded-2xl border-dashed">
-                <p className="text-zinc-500 text-sm">No questions have been asked yet. Be the first!</p>
+                <p className="text-zinc-500 text-sm">No {user && user.role === 'admin' ? "questions/announcements" : "questions"} have been asked yet. Be the first!</p>
               </div>
             ) : (
               <div className="space-y-4">

@@ -32,16 +32,22 @@ export async function DELETE(
       return NextResponse.json({ message: "Access Denied: Invalid session!" }, { status: 401 });
     }
 
-    // 3. Verify Admin privileges
-    const activeUser = await User.findById(decoded.userId);
-    if (!activeUser || activeUser.role !== 'admin') {
-      return NextResponse.json({ message: "Access Denied: Admin privileges required!" }, { status: 403 });
+    // 3. Find target answer
+    const answer = await Answer.findById(id);
+    if (!answer) {
+      return NextResponse.json({ message: "Answer not found!" }, { status: 404 });
     }
 
-    // ======================================================================
-    // TODO: Write Mongoose query to find and delete the answer by its ID
-    // ======================================================================
-    // Hint: Use Answer.findByIdAndDelete(id)
+    // 4. Verify Admin privileges OR Answer ownership
+    const activeUser = await User.findById(decoded.userId);
+    const isAuthor = answer.author.toString() === decoded.userId;
+    const isAdmin = activeUser && activeUser.role === 'admin';
+
+    if (!isAuthor && !isAdmin) {
+      return NextResponse.json({ message: "Access Denied: You can only delete your own replies!" }, { status: 403 });
+    }
+
+    // 5. Delete Answer
     const deletedAnswer = await Answer.findByIdAndDelete(id);
     
 

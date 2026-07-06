@@ -64,18 +64,22 @@ export async function DELETE(
       return NextResponse.json({ message: "Access Denied: Invalid session!" }, { status: 401 });
     }
 
-    // 3. Verify Admin privileges
-    const activeUser = await User.findById(decoded.userId);
-    if (!activeUser || activeUser.role !== 'admin') {
-      return NextResponse.json({ message: "Access Denied: Admin privileges required!" }, { status: 403 });
+    // 3. Find target question
+    const question = await Question.findById(id);
+    if (!question) {
+      return NextResponse.json({ message: "Question not found!" }, { status: 404 });
     }
 
-    // ======================================================================
-    // TODO: Write Mongoose query to delete the question by its ID
-    // AND optionally delete all related answers for this question
-    // ======================================================================
-    // Hint 1: Use Question.findByIdAndDelete(id)
-    // Hint 2: Use Answer.deleteMany({ question: id }) to clean up replies!
+    // 4. Verify Admin privileges OR Question ownership
+    const activeUser = await User.findById(decoded.userId);
+    const isAuthor = question.author.toString() === decoded.userId;
+    const isAdmin = activeUser && activeUser.role === 'admin';
+
+    if (!isAuthor && !isAdmin) {
+      return NextResponse.json({ message: "Access Denied: You can only delete your own questions!" }, { status: 403 });
+    }
+
+    // 5. Delete Question and cascade delete its Answer replies
     const questionDeleted = await Question.findByIdAndDelete(id);
     const answersDeleted = await Answer.deleteMany({ question: id });
     

@@ -34,6 +34,7 @@ interface UserProfile {
   _id: string;
   username: string;
   role?: 'user' | 'admin';
+  reputation?: number;
 }
 
 export default function QuestionDetailPage() {
@@ -135,6 +136,8 @@ export default function QuestionDetailPage() {
       if (response.ok){
         setAnswerContent("");
         setSubmitSuccess("Answer posted successfully!");
+        // Update user state reputation locally (+20 XP for posting answer)
+        setUser(prev => prev ? { ...prev, reputation: (prev.reputation || 0) + 20 } : null);
         
         // Re-fetch the answers to update the list
         const answersRes = await fetch(`/api/answers?questionId=${questionId}`);
@@ -342,12 +345,12 @@ export default function QuestionDetailPage() {
               </button>
             </div>
 
-            {user && user.role === 'admin' && (
+            {user && (user.role === 'admin' || user._id === question.author?._id) && (
               <button 
                 onClick={handleDeleteQuestion}
                 className="bg-red-950/20 hover:bg-red-900/20 border border-red-900/30 hover:border-red-800/50 text-red-400 hover:text-red-300 font-semibold text-xs px-4 py-2 rounded-xl transition duration-200 cursor-pointer shadow-md"
               >
-                Delete Question
+                {user.role === 'admin' ? "Delete Question/Announcement" : "Delete Question"}
               </button>
             )}
           </div>
@@ -407,7 +410,7 @@ export default function QuestionDetailPage() {
                       </button>
                     </div>
 
-                    {user && user.role === 'admin' && (
+                    {user && (user.role === 'admin' || user._id === ans.author?._id) && (
                       <button 
                         onClick={() => handleDeleteAnswer(ans._id)}
                         className="text-[10px] text-red-400 hover:text-red-300 font-semibold px-2.5 py-1 bg-red-950/20 hover:bg-red-900/10 border border-red-900/30 rounded-lg transition duration-200 cursor-pointer"
