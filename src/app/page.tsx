@@ -227,19 +227,36 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setShowAskForm(!showAskForm)}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-4 py-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-md shadow-indigo-600/10 hover:shadow-indigo-500/25 cursor-pointer"
-            >
-              {showAskForm ? "Close Form" : "Ask a Question"}
-            </button>
-            {user && (
-              <button 
-                onClick={handleLogout}
-                className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-850 text-zinc-300 hover:text-white font-semibold text-sm px-4 py-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-              >
-                Log Out
-              </button>
+            {user ? (
+              <>
+                <button 
+                  onClick={() => setShowAskForm(!showAskForm)}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-4 py-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-md shadow-indigo-600/10 hover:shadow-indigo-500/25 cursor-pointer"
+                >
+                  {showAskForm ? "Close Form" : "Ask a Question"}
+                </button>
+                <button 
+                  onClick={handleLogout}
+                  className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-850 text-zinc-300 hover:text-white font-semibold text-sm px-4 py-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                >
+                  Log Out
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={() => router.push("/login")}
+                  className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white font-semibold text-sm px-4 py-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                >
+                  Log In
+                </button>
+                <button 
+                  onClick={() => router.push("/register")}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-4 py-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-md shadow-indigo-600/10 hover:shadow-indigo-500/25 cursor-pointer"
+                >
+                  Sign Up
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -429,6 +446,30 @@ export default function Home() {
                       ))}
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {!user && (
+              <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl relative overflow-hidden shadow-xl shadow-zinc-950/50">
+                <div className="absolute top-0 right-0 h-24 w-24 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+                <h3 className="text-sm font-bold text-white mb-2">Join the Community!</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed mb-4">
+                  Log in or create an account to ask questions, post replies, and attempt quizzes to earn badges and reputation ranks!
+                </p>
+                <div className="flex flex-col gap-2">
+                  <button 
+                    onClick={() => router.push("/login")}
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs py-2.5 rounded-xl transition duration-200 cursor-pointer text-center"
+                  >
+                    Log In
+                  </button>
+                  <button 
+                    onClick={() => router.push("/register")}
+                    className="w-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white font-semibold text-xs py-2.5 rounded-xl transition duration-200 cursor-pointer text-center"
+                  >
+                    Sign Up
+                  </button>
                 </div>
               </div>
             )}
