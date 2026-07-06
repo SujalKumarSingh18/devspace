@@ -211,7 +211,7 @@ Here is how all the files in your project connect to each other in a 5-tier arch
 ---
 
 ## 🛠️ Upcoming Steps
+
 1. Connect GitHub repository to Vercel and deploy DevSpace live.
 2. Integrate Google OAuth login using NextAuth/Auth.js.
 3. Add a visual admin dashboard for creating and managing quizzes.
-

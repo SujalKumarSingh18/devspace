@@ -68,8 +68,12 @@ export async function POST(req: Request) {
     }
     
 
-    // D. Create Answer: Save to database using the Answer model
+    // 1. Create Answer: Save to database using the Answer model
     const newAnswer = await Answer.create({ content, question, author });
+
+    // 2. Award reputation to the author for posting an answer (+20 XP)
+    userExists.reputation += 20;
+    await userExists.save();
 
     // Return success response with status 201
     return NextResponse.json({ message: "Answer posted successfully!", answer: newAnswer }, { status: 201 });

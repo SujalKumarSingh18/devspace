@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { cookies } from 'next/headers';
 
 export async function POST(req: Request) {
   try {
@@ -19,7 +21,6 @@ export async function POST(req: Request) {
     }
 
     // 4. Find User: Search MongoDB for a user with the provided email.
-    // Note: Always AWAIT database queries, otherwise you get a Promise/Query object, not the document!
     const user = await User.findOne({ email });
     if (!user) {
       return NextResponse.json({
@@ -35,12 +36,31 @@ export async function POST(req: Request) {
       }, { status: 401 });
     }
 
-    // 6. Return success: If it matches, return a 200 OK response with the user info
+    // 6. Generate JWT Token
+    const secret = process.env.JWT_SECRET || 'devspace-secret-key-123!';
+    const token = jwt.sign(
+      { userId: user._id, username: user.username, email: user.email, role: user.role },
+      secret,
+      { expiresIn: '1d' }
+    );
+
+    // 7. Set HTTP-only Cookie
+    const cookieStore = await cookies();
+    cookieStore.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24, // 1 day
+      path: '/'
+    });
+
+    // 8. Return success: Return user details and success message
     return NextResponse.json({ 
       message: "Login successful!", 
       user: { 
         username: user.username, 
-        email: user.email 
+        email: user.email,
+        role: user.role
       } 
     }, { status: 200 });
 

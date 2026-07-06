@@ -7,6 +7,7 @@ interface IUser {
     reputation: number;
     badges: string[];
     themePreference: 'light' | 'dark' | 'system';
+    role: 'user' | 'admin';
     location?: string;
     createdAt: Date;
 }
@@ -40,6 +41,11 @@ const UserSchema = new Schema<IUser>({
         type: String,
         enum: ['light', 'dark', 'system'],
         default: 'system',
+    },
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user',
     },
     location: {
         type: String,

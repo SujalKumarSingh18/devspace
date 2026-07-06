@@ -6,13 +6,18 @@ import User from '@/models/User';
 // ======================================================================
 // 1. GET: Fetch all questions (with populated author details)
 // ======================================================================
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     await dbConnect();
 
-    // Query database: Find all questions, populate the 'author' field selecting only 'username'
-    // Hint: const questions = await Question.find().populate('author', 'username');
-    const questions = await Question.find().populate('author', 'username');
+    // ======================================================================
+    // TODO: Sort questions by creation date in descending order (newest first!)
+    // ======================================================================
+    // Hint: Chain .sort({ createdAt: -1 }) onto the Question.find() query
+    
+    const questions = await Question.find().sort({createdAt: -1}).populate('author', 'username');
     return NextResponse.json({ success: true, questions });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -47,13 +52,22 @@ export async function POST(req: Request) {
       }, {status: 400});
     }
 
+    
+    
     // Create question: Save to database using the Question model
-    await Question.create({
+    const newQuestion = await Question.create({
       title, content, tags, author
     });
-
+    
+    // ======================================================================
+    // TODO: Award reputation to the author for asking a question (+10 XP)
+    // ======================================================================
+    // 1. Increment userExists.reputation by 10
+    // 2. Save the updated user document (await userExists.save())
+    userExists.reputation += 10;
+    await userExists.save();
     // Return success response with status 201
-    return NextResponse.json({ message: "Question Created Successfully" }, {status: 201});
+    return NextResponse.json({ success: true, message: "Question Created Successfully", question: newQuestion }, {status: 201});
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
