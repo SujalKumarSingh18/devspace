@@ -88,15 +88,21 @@ export default function QuizPage() {
   const handleNextQuestion = async () => {
     if (selectedOption === null || !quiz) return;
 
-    // A. Check if the selected option is correct and update correctAnswers count
-    // Hint: quiz.questions[currentIndex].correctOptionIndex
-    let updatedCorrectCount = correctAnswers;
-    if (selectedOption === quiz.questions[currentIndex].correctOptionIndex) {
-      updatedCorrectCount += 1;
-      setCorrectAnswers(updatedCorrectCount);
+    // Clear previous wrong answer errors
+    setSubmitError("");
+
+    // A. Check if the selected option is correct. If incorrect, block and warn.
+    const correctIdx = quiz.questions[currentIndex].correctOptionIndex;
+    if (selectedOption !== correctIdx) {
+      setSubmitError("Incorrect answer! Please try again.");
+      return;
     }
 
-    // B. Clear the selected option selection for the next question
+    // B. If correct, update count
+    let updatedCorrectCount = correctAnswers + 1;
+    setCorrectAnswers(updatedCorrectCount);
+
+    // C. Clear the selected option selection for the next question
     setSelectedOption(null);
 
     // C. Check if we have reached the end of the quiz
@@ -205,7 +211,10 @@ export default function QuizPage() {
               {currentQuestion.options.map((option, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setSelectedOption(idx)}
+                  onClick={() => {
+                    setSelectedOption(idx);
+                    setSubmitError("");
+                  }}
                   className={`w-full p-4 rounded-2xl border text-left text-sm font-semibold transition-all duration-150 flex items-center justify-between cursor-pointer ${
                     selectedOption === idx
                       ? "bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-500/5"
