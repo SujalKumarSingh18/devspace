@@ -41,6 +41,11 @@ export default function QuizPage() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   
+  // Feedback state for checking answers
+  const [checked, setChecked] = useState(false);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [firstTryStatus, setFirstTryStatus] = useState<boolean[]>([]);
+  
   // Quiz completion state
   const [completed, setCompleted] = useState(false);
   const [submittingAttempt, setSubmittingAttempt] = useState(false);
@@ -68,6 +73,9 @@ export default function QuizPage() {
           // Find the specific quiz matching the quizId from the URL
           const foundQuiz = quizzesData.quizzes.find((q: Quiz) => q._id === quizId);
           setQuiz(foundQuiz || null);
+          if (foundQuiz) {
+            setFirstTryStatus(new Array(foundQuiz.questions.length).fill(true));
+          }
         }
 
         if (userData.success) {
@@ -83,38 +91,56 @@ export default function QuizPage() {
   }, [quizId]);
 
   // ======================================================================
-  // TODO 2: Handle Option Selection and Proceed to Next Question
+  // handleCheckAnswer - Validates the currently selected option.
+  // Provides visual green "Correct!" or red "Wrong answer, try again" feedback.
+  // Tracks if the user got the question right on their first try.
   // ======================================================================
-  const handleNextQuestion = async () => {
+  const handleCheckAnswer = () => {
     if (selectedOption === null || !quiz) return;
 
-    // Clear previous wrong answer errors
     setSubmitError("");
 
-    // A. Check if the selected option is correct. If incorrect, block and warn.
     const correctIdx = quiz.questions[currentIndex].correctOptionIndex;
-    if (selectedOption !== correctIdx) {
-      setSubmitError("Incorrect answer! Please try again.");
-      return;
+    const isAnsCorrect = selectedOption === correctIdx;
+
+    setIsCorrect(isAnsCorrect);
+    setChecked(true);
+
+    if (isAnsCorrect) {
+      // User got it correct. Increment the count of correct answers.
+      setCorrectAnswers(prev => prev + 1);
+    } else {
+      // User got it incorrect. Mark this question's first try status as false.
+      setFirstTryStatus(prev => {
+        const next = [...prev];
+        next[currentIndex] = false;
+        return next;
+      });
     }
+  };
 
-    // B. If correct, update count
-    let updatedCorrectCount = correctAnswers + 1;
-    setCorrectAnswers(updatedCorrectCount);
+  // ======================================================================
+  // handleNextQuestion - Advances the quiz deck or submits final attempt on finish.
+  // Calculates score based on first-try accuracy.
+  // ======================================================================
+  const handleNextQuestion = async () => {
+    if (!quiz) return;
 
-    // C. Clear the selected option selection for the next question
+    // Reset checking feedback states for the next question card
+    setChecked(false);
+    setIsCorrect(null);
     setSelectedOption(null);
+    setSubmitError("");
 
-    // C. Check if we have reached the end of the quiz
     const isLastQuestion = currentIndex === quiz.questions.length - 1;
     
     if (isLastQuestion) {
-      // D. Calculate final percentage score: (correct / total) * 100
-      const scorePercentage = Math.round((updatedCorrectCount / quiz.questions.length) * 100);
+      // Calculate final score using firstTryStatus array (only counting first-try correct answers)
+      const firstTryCorrectCount = firstTryStatus.filter(val => val === true).length;
+      const scorePercentage = Math.round((firstTryCorrectCount / quiz.questions.length) * 100);
       setFinalScore(scorePercentage);
       setCompleted(true);
       
-      // E. Submit attempt to backend: POST /api/quizzes/attempts
       setSubmittingAttempt(true);
       try {
         const response = await fetch("/api/quizzes/attempts", {
@@ -156,7 +182,7 @@ export default function QuizPage() {
         setSubmittingAttempt(false);
       }
     } else {
-      // F. Otherwise, proceed to the next question index
+      // Otherwise, proceed to the next question card
       setCurrentIndex(currentIndex + 1);
     }
   };
@@ -213,6 +239,8 @@ export default function QuizPage() {
                   key={idx}
                   onClick={() => {
                     setSelectedOption(idx);
+                    setChecked(false);
+                    setIsCorrect(null);
                     setSubmitError("");
                   }}
                   className={`w-full p-4 rounded-2xl border text-left text-sm font-semibold transition-all duration-150 flex items-center justify-between cursor-pointer ${
@@ -235,17 +263,32 @@ export default function QuizPage() {
               ))}
             </div>
 
+            {/* Feedback Messages */}
+            {checked && isCorrect === false && (
+              <p className="text-red-400 text-sm font-semibold text-center mb-5">
+                Wrong answer, try again
+              </p>
+            )}
+            {checked && isCorrect === true && (
+              <p className="text-green-400 text-sm font-semibold text-center mb-5">
+                Correct!
+              </p>
+            )}
+
             {/* Action Button */}
             <button
-              onClick={handleNextQuestion}
-              disabled={selectedOption === null}
+              onClick={checked && isCorrect ? handleNextQuestion : handleCheckAnswer}
+              disabled={selectedOption === null || (checked && !isCorrect)}
               className={`w-full py-4 rounded-2xl font-bold text-sm transition-all duration-200 shadow-lg cursor-pointer ${
-                selectedOption === null
+                (selectedOption === null || (checked && !isCorrect))
                   ? "bg-zinc-800 text-zinc-500 cursor-not-allowed shadow-none"
                   : "bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-indigo-600/15"
               }`}
             >
-              {currentIndex === quiz.questions.length - 1 ? "Finish Quiz" : "Next Question"}
+              {checked && isCorrect 
+                ? (currentIndex === quiz.questions.length - 1 ? "Finish Quiz" : "Next Question")
+                : "Check Answer"
+              }
             </button>
           </div>
         ) : (
@@ -269,9 +312,9 @@ export default function QuizPage() {
                 </span>
               </div>
               <div className="pl-4 text-center flex flex-col justify-center">
-                <span className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">XP Reward</span>
-                <span className="text-xl font-black text-indigo-400">
-                  {finalScore && finalScore >= 80 ? `+50 XP` : "0 XP"}
+                <span className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Status</span>
+                <span className={`text-xl font-black ${finalScore && finalScore >= 80 ? "text-indigo-400" : "text-zinc-500"}`}>
+                  {finalScore && finalScore >= 80 ? "Passed" : "Failed"}
                 </span>
               </div>
             </div>
@@ -281,14 +324,14 @@ export default function QuizPage() {
             ) : submitError ? (
               <p className="text-red-400 text-xs mb-4">{submitError}</p>
             ) : earnedReputation ? (
-              <p className="text-green-400 text-xs font-semibold mb-6 flex items-center justify-center gap-1.5 animate-bounce">
-                🎉 +50 XP Reputation points & Quiz-Master badge awarded!
+              <p className="text-green-400 text-xs font-semibold mb-6 flex items-center justify-center gap-1.5">
+                🎉 Quiz completed and passed! Your badge has been unlocked.
               </p>
             ) : (
               <p className="text-zinc-500 text-xs mb-6">
                 {finalScore && finalScore >= 80 
-                  ? "You already passed this quiz before (No double-XP farming!)." 
-                  : "Score 80% or higher to earn +50 Reputation and the Quiz-Master badge!"}
+                  ? "Attempt logged. You already passed this quiz before (No double-XP farming!)." 
+                  : "Score 80% or higher on your first attempts to earn Reputation and the Quiz-Master badge!"}
               </p>
             )}
 
