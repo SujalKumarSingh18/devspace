@@ -197,10 +197,14 @@ Here is how all the files in your project connect to each other in a 5-tier arch
 
 - **[route.ts](file:///c:/Users/sujal/Desktop/PROJECTS/devspace/src/app/api/questions/[id]/route.ts):** Completed. Dynamic GET handler to fetch a single question by ID, populating its author.
 - **[page.tsx](file:///c:/Users/sujal/Desktop/PROJECTS/devspace/src/app/questions/[id]/page.tsx):** Completed. Dynamic question details page rendering with dynamic routing, author population, answers mapping feed, and answer posting with state refreshes.
+- **[page.tsx](file:///c:/Users/sujal/Desktop/PROJECTS/devspace/src/app/profile/page.tsx):** Completed. User profile page showcasing dynamic contributor rank calculations, progress bars, reputation stats, and unlocked/locked badges dashboard.
+- **[page.tsx](file:///c:/Users/sujal/Desktop/PROJECTS/devspace/src/app/register/page.tsx):** Completed. Premium dark mode registration page layout and integration.
+- **[page.tsx](file:///c:/Users/sujal/Desktop/PROJECTS/devspace/src/app/login/page.tsx):** Completed. Premium dark mode login page layout and integration.
 
 ---
 
 ## 🛠️ Upcoming Steps
-1. Build the **User Profile Page (`/profile`)** to display user XP, reputation stats, and badges.
-2. Build the **Login & Register UI Pages** to replace Postman with a real login screen flow!
 
+1. Test the registration and login routes in the browser.
+2. Build JWT cookie session management (to replace mock `/api/auth/me` with actual cookies).
+3. Connect GitHub repository to Vercel and deploy DevSpace live!
