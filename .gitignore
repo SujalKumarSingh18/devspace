@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+#Local study & logs
+mern_package_guide.txt
+react_concept_guide.txt

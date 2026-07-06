@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 // TypeScript Interfaces for our State
 interface UserProfile {
@@ -32,6 +33,8 @@ interface Quiz {
 }
 
 export default function Home() {
+  const router = useRouter();
+
   // ======================================================================
   // 1. TODO: Define React States (using useState)
   // ======================================================================
@@ -272,7 +275,8 @@ export default function Home() {
                 {questions.map((q) => (
                   <div 
                     key={q._id}
-                    className="p-5 bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl transition-all duration-200 group relative hover:shadow-lg hover:shadow-indigo-500/[0.02]"
+                    onClick={() => router.push(`/questions/${q._id}`)}
+                    className="p-5 bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-2xl transition-all duration-200 group relative hover:shadow-lg hover:shadow-indigo-500/[0.02] cursor-pointer"
                   >
                     <div className="flex items-center gap-2 mb-2.5">
                       <div className="h-6 w-6 rounded-full bg-indigo-900/50 border border-indigo-500/20 text-indigo-400 text-xs font-semibold flex items-center justify-center">
@@ -380,7 +384,10 @@ export default function Home() {
                       
                       <div className="flex justify-between items-center">
                         <span className="text-[10px] font-semibold text-indigo-400">+{quiz.xpReward} XP</span>
-                        <button className="text-[10px] font-bold text-white bg-zinc-800 hover:bg-indigo-600 px-3 py-1.5 rounded-lg transition-all cursor-pointer">
+                        <button 
+                          onClick={() => router.push(`/quiz/${quiz._id}`)}
+                          className="text-[10px] font-bold text-white bg-zinc-800 hover:bg-indigo-600 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                        >
                           Start Quiz
                         </button>
                       </div>

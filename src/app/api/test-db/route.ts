@@ -1,26 +1,25 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
+import QuizAttempt from '@/models/QuizAttempt';
+import Quiz from '@/models/Quiz';
 
 export async function GET() {
   try {
-    // 1. Attempt to connect to the database
-    console.log("Testing database connection...");
     await dbConnect();
-    
-    // 2. Perform a simple query using our User model
-    const count = await User.countDocuments();
+    const users = await User.find();
+    const attempts = await QuizAttempt.find().populate('user', 'username').populate('quiz', 'title');
+    const quizzes = await Quiz.find();
     
     return NextResponse.json({
       success: true,
-      message: "Database connected and queried successfully!",
-      userCount: count
+      users,
+      attempts,
+      quizzes
     });
   } catch (error: any) {
-    console.error("Database test failed:", error);
     return NextResponse.json({
       success: false,
-      message: "Database connection failed!",
       error: error.message
     }, { status: 500 });
   }
